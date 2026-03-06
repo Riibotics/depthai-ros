@@ -23,78 +23,25 @@ class RGB : public BasePipeline {
    public:
     std::vector<std::unique_ptr<dai_nodes::BaseNode>> createPipeline(std::shared_ptr<rclcpp::Node> node,
                                                                      std::shared_ptr<dai::Device> device,
-                                                                     std::shared_ptr<dai::Pipeline> pipeline,
-                                                                     const std::string& nnType) override;
+                                                                     std::shared_ptr<dai::Pipeline> pipeline) override;
 };
 class RGBD : public BasePipeline {
    public:
     std::vector<std::unique_ptr<dai_nodes::BaseNode>> createPipeline(std::shared_ptr<rclcpp::Node> node,
                                                                      std::shared_ptr<dai::Device> device,
-                                                                     std::shared_ptr<dai::Pipeline> pipeline,
-                                                                     const std::string& nnType) override;
-};
-class RGBStereo : public BasePipeline {
-   public:
-    std::vector<std::unique_ptr<dai_nodes::BaseNode>> createPipeline(std::shared_ptr<rclcpp::Node> node,
-                                                                     std::shared_ptr<dai::Device> device,
-                                                                     std::shared_ptr<dai::Pipeline> pipeline,
-                                                                     const std::string& nnType) override;
+                                                                     std::shared_ptr<dai::Pipeline> pipeline) override;
 };
 class Stereo : public BasePipeline {
    public:
     std::vector<std::unique_ptr<dai_nodes::BaseNode>> createPipeline(std::shared_ptr<rclcpp::Node> node,
                                                                      std::shared_ptr<dai::Device> device,
-                                                                     std::shared_ptr<dai::Pipeline> pipeline,
-                                                                     const std::string& nnType) override;
+                                                                     std::shared_ptr<dai::Pipeline> pipeline) override;
 };
 class Depth : public BasePipeline {
    public:
     std::vector<std::unique_ptr<dai_nodes::BaseNode>> createPipeline(std::shared_ptr<rclcpp::Node> node,
                                                                      std::shared_ptr<dai::Device> device,
-                                                                     std::shared_ptr<dai::Pipeline> pipeline,
-                                                                     const std::string& nnType) override;
-};
-class CamArray : public BasePipeline {
-   public:
-    std::vector<std::unique_ptr<dai_nodes::BaseNode>> createPipeline(std::shared_ptr<rclcpp::Node> node,
-                                                                     std::shared_ptr<dai::Device> device,
-                                                                     std::shared_ptr<dai::Pipeline> pipeline,
-                                                                     const std::string& nnType) override;
-};
-class DepthToF : public BasePipeline {
-   public:
-    std::vector<std::unique_ptr<dai_nodes::BaseNode>> createPipeline(std::shared_ptr<rclcpp::Node> node,
-                                                                     std::shared_ptr<dai::Device> device,
-                                                                     std::shared_ptr<dai::Pipeline> pipeline,
-                                                                     const std::string& nnType) override;
-};
-class StereoToF : public BasePipeline {
-   public:
-    std::vector<std::unique_ptr<dai_nodes::BaseNode>> createPipeline(std::shared_ptr<rclcpp::Node> node,
-                                                                     std::shared_ptr<dai::Device> device,
-                                                                     std::shared_ptr<dai::Pipeline> pipeline,
-                                                                     const std::string& nnType) override;
-};
-class ToF : public BasePipeline {
-   public:
-    std::vector<std::unique_ptr<dai_nodes::BaseNode>> createPipeline(std::shared_ptr<rclcpp::Node> node,
-                                                                     std::shared_ptr<dai::Device> device,
-                                                                     std::shared_ptr<dai::Pipeline> pipeline,
-                                                                     const std::string& nnType) override;
-};
-class RGBToF : public BasePipeline {
-   public:
-    std::vector<std::unique_ptr<dai_nodes::BaseNode>> createPipeline(std::shared_ptr<rclcpp::Node> node,
-                                                                     std::shared_ptr<dai::Device> device,
-                                                                     std::shared_ptr<dai::Pipeline> pipeline,
-                                                                     const std::string& nnType) override;
-};
-class Thermal : public BasePipeline {
-   public:
-    std::vector<std::unique_ptr<dai_nodes::BaseNode>> createPipeline(std::shared_ptr<rclcpp::Node> node,
-                                                                     std::shared_ptr<dai::Device> device,
-                                                                     std::shared_ptr<dai::Pipeline> pipeline,
-                                                                     const std::string& nnType) override;
+                                                                     std::shared_ptr<dai::Pipeline> pipeline) override;
 };
 }  // namespace pipeline_gen
 }  // namespace depthai_ros_driver

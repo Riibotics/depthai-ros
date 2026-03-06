@@ -7,16 +7,13 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     add_compile_options(-Wall -Wextra -Wpedantic -Wno-deprecated-declarations -Wno-maybe-uninitialized)
 endif()
-# Default to C99
 if(NOT CMAKE_C_STANDARD)
   set(CMAKE_C_STANDARD 99)
 endif()
-# Default to C++17
 if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 17)
 endif()
 
-# find dependencies
 find_package(ament_cmake_auto REQUIRED)
 ament_auto_find_build_dependencies()
 
@@ -34,30 +31,33 @@ ffmpeg_image_transport_msgs
 )
 
 set(SENSOR_DEPS
-cv_bridge 
+cv_bridge
 camera_info_manager
-depthai 
-depthai_bridge 
-rclcpp  
-std_msgs 
-sensor_msgs 
-image_transport)
-
-set(NN_DEPS
-depthai 
-depthai_bridge 
-rclcpp 
-vision_msgs 
+depthai
+depthai_bridge
+rclcpp
+std_msgs
+sensor_msgs
+image_transport
 )
 
 set(CAM_DEPS
-depthai 
-rclcpp 
-rclcpp_components 
+depthai
+rclcpp
+rclcpp_components
 std_srvs
 pluginlib
 )
 
+set(LIFECYCLE_DEPS
+rclcpp
+rclcpp_lifecycle
+lifecycle_msgs
+std_srvs
+diagnostic_updater
+diagnostic_msgs
+rii_common_utils
+)
 
 include_directories(include)
 
@@ -68,51 +68,26 @@ add_library(
   src/dai_nodes/base_node.cpp
   src/dai_nodes/sys_logger.cpp
   src/dai_nodes/sensors/img_pub.cpp
-  src/dai_nodes/sensors/sensor_helpers.cpp # TODO: Figure out different place for this 
+  src/dai_nodes/sensors/sensor_helpers.cpp
   src/param_handlers/camera_param_handler.cpp
-  src/param_handlers/imu_param_handler.cpp
-  src/param_handlers/nn_param_handler.cpp
   src/param_handlers/sensor_param_handler.cpp
-  src/param_handlers/feature_tracker_param_handler.cpp
   src/param_handlers/stereo_param_handler.cpp
-  src/param_handlers/tof_param_handler.cpp
   src/param_handlers/pipeline_gen_param_handler.cpp
   src/param_handlers/sync_param_handler.cpp
 )
-
 ament_target_dependencies(${COMMON_LIB_NAME} ${COMMON_DEPS})
 
 set(SENSOR_LIB_NAME ${PROJECT_NAME}_sensor_nodes)
 add_library(
   ${SENSOR_LIB_NAME} SHARED
-  src/dai_nodes/sensors/imu.cpp
   src/dai_nodes/sensors/rgb.cpp
   src/dai_nodes/sensors/mono.cpp
-  src/dai_nodes/sensors/feature_tracker.cpp
   src/dai_nodes/sensors/sensor_wrapper.cpp
   src/dai_nodes/sensors/stereo.cpp
-  src/dai_nodes/sensors/thermal.cpp
-  src/dai_nodes/sensors/tof.cpp
   src/dai_nodes/sensors/sync.cpp
 )
-
 ament_target_dependencies(${SENSOR_LIB_NAME} ${SENSOR_DEPS})
-target_link_libraries(
-  ${SENSOR_LIB_NAME}
-  ${COMMON_LIB_NAME}
-)
-set(NN_LIB_NAME ${PROJECT_NAME}_nn_nodes)
-add_library(
-  ${NN_LIB_NAME} SHARED
-  src/dai_nodes/nn/nn_wrapper.cpp
-  src/dai_nodes/nn/spatial_nn_wrapper.cpp
-  src/dai_nodes/nn/segmentation.cpp
-)
-ament_target_dependencies(${NN_LIB_NAME} ${NN_DEPS})
-target_link_libraries(
-  ${NN_LIB_NAME}
-  ${COMMON_LIB_NAME}
-)
+target_link_libraries(${SENSOR_LIB_NAME} ${COMMON_LIB_NAME})
 
 add_library(
   ${PROJECT_NAME} SHARED
@@ -120,32 +95,39 @@ add_library(
   src/pipeline/pipeline_generator.cpp
   src/pipeline/base_types.cpp
 )
-
 ament_target_dependencies(${PROJECT_NAME} ${CAM_DEPS})
 target_link_libraries(
   ${PROJECT_NAME}
   ${SENSOR_LIB_NAME}
-  ${NN_LIB_NAME}
   ${COMMON_LIB_NAME}
 )
-add_executable(
-	camera_node
-	src/camera_node.cpp)
-ament_target_dependencies(camera_node ${CAM_DEPS} ${COMMON_DEPS} ${SENSOR_DEPS} ${NN_DEPS})
-target_link_libraries(camera_node ${PROJECT_NAME} ${SENSOR_LIB_NAME} ${NN_LIB_NAME} ${COMMON_LIB_NAME})
+
+add_executable(camera_node src/camera_node.cpp)
+ament_target_dependencies(camera_node ${CAM_DEPS} ${COMMON_DEPS} ${SENSOR_DEPS})
+target_link_libraries(camera_node ${PROJECT_NAME} ${SENSOR_LIB_NAME} ${COMMON_LIB_NAME})
+
+set(LIFECYCLE_LIB_NAME ${PROJECT_NAME}_lifecycle)
+add_library(
+  ${LIFECYCLE_LIB_NAME} SHARED
+  src/camera_lifecycle_manager.cpp
+)
+ament_target_dependencies(${LIFECYCLE_LIB_NAME} ${LIFECYCLE_DEPS})
+
+add_executable(camera_lifecycle_node src/camera_lifecycle_node.cpp)
+ament_target_dependencies(camera_lifecycle_node ${LIFECYCLE_DEPS})
+target_link_libraries(camera_lifecycle_node ${LIFECYCLE_LIB_NAME})
+
 rclcpp_components_register_nodes(${PROJECT_NAME} "${PROJECT_NAME}::Camera")
 pluginlib_export_plugin_description_file(${PROJECT_NAME} plugins.xml)
 ament_export_include_directories(include)
 
 ament_export_targets(${PROJECT_NAME}Targets HAS_LIBRARY_TARGET)
 ament_export_libraries(${PROJECT_NAME})
-ament_export_dependencies(${COMMON_DEPS} ${SENSOR_DEPS} ${NN_DEPS} ${CAM_DEPS})
+ament_export_dependencies(${COMMON_DEPS} ${SENSOR_DEPS} ${CAM_DEPS} ${LIFECYCLE_DEPS})
 
 install(DIRECTORY launch config DESTINATION share/${PROJECT_NAME})
 
-install(TARGETS ${PROJECT_NAME}  ${SENSOR_LIB_NAME}
-${NN_LIB_NAME}
-${COMMON_LIB_NAME}
+install(TARGETS ${PROJECT_NAME} ${SENSOR_LIB_NAME} ${COMMON_LIB_NAME} ${LIFECYCLE_LIB_NAME}
 EXPORT ${PROJECT_NAME}Targets
         ARCHIVE DESTINATION lib
         LIBRARY DESTINATION lib
@@ -155,18 +137,10 @@ EXPORT ${PROJECT_NAME}Targets
 
 install(EXPORT ${PROJECT_NAME}Targets
       DESTINATION share/${PROJECT_NAME}/cmake)
-install(TARGETS camera_node DESTINATION lib/${PROJECT_NAME})
+install(TARGETS camera_node camera_lifecycle_node DESTINATION lib/${PROJECT_NAME})
 ament_python_install_package(${PROJECT_NAME})
-# Install Python executables
-install(
-  PROGRAMS
-  scripts/obj_pub.py
-  DESTINATION lib/${PROJECT_NAME}
-)
 
-ament_export_include_directories(
-  include
-)
+ament_export_include_directories(include)
 
 install(
     DIRECTORY include/

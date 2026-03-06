@@ -5,9 +5,6 @@
 #include "depthai/pipeline/datatype/ADatatype.hpp"
 #include "depthai/pipeline/datatype/ImgFrame.hpp"
 #include "depthai/pipeline/node/StereoDepth.hpp"
-#include "depthai_ros_driver/dai_nodes/nn/nn_helpers.hpp"
-#include "depthai_ros_driver/dai_nodes/nn/spatial_nn_wrapper.hpp"
-#include "depthai_ros_driver/dai_nodes/sensors/feature_tracker.hpp"
 #include "depthai_ros_driver/dai_nodes/sensors/img_pub.hpp"
 #include "depthai_ros_driver/dai_nodes/sensors/sensor_helpers.hpp"
 #include "depthai_ros_driver/dai_nodes/sensors/sensor_wrapper.hpp"
@@ -55,19 +52,6 @@ Stereo::Stereo(const std::string& daiNodeName,
     setXinXout(pipeline);
     left->link(stereoCamNode->left);
     right->link(stereoCamNode->right);
-
-    if(ph->getParam<bool>("i_enable_spatial_nn")) {
-        if(ph->getParam<std::string>("i_spatial_nn_source") == "left") {
-            nnNode = std::make_unique<SpatialNNWrapper>(getName() + "_spatial_nn", getROSNode(), pipeline, leftSensInfo.socket);
-            left->link(nnNode->getInput(static_cast<int>(dai_nodes::nn_helpers::link_types::SpatialNNLinkType::input)),
-                       static_cast<int>(dai_nodes::link_types::RGBLinkType::preview));
-        } else {
-            nnNode = std::make_unique<SpatialNNWrapper>(getName() + "_spatial_nn", getROSNode(), pipeline, rightSensInfo.socket);
-            right->link(nnNode->getInput(static_cast<int>(dai_nodes::nn_helpers::link_types::SpatialNNLinkType::input)),
-                        static_cast<int>(dai_nodes::link_types::RGBLinkType::preview));
-        }
-        stereoCamNode->depth.link(nnNode->getInput(static_cast<int>(dai_nodes::nn_helpers::link_types::SpatialNNLinkType::inputDepth)));
-    }
 
     RCLCPP_DEBUG(getLogger(), "Node %s created", daiNodeName.c_str());
 }
@@ -121,16 +105,6 @@ void Stereo::setXinXout(std::shared_ptr<dai::Pipeline> pipeline) {
             pipeline, rightRectQName, [&](auto input) { stereoCamNode->rectifiedRight.link(input); }, ph->getParam<bool>("i_right_rect_synced"), encConf);
     }
 
-    if(ph->getParam<bool>("i_left_rect_enable_feature_tracker")) {
-        featureTrackerLeftR = std::make_unique<FeatureTracker>(leftSensInfo.name + std::string("_rect_feature_tracker"), getROSNode(), pipeline);
-
-        stereoCamNode->rectifiedLeft.link(featureTrackerLeftR->getInput());
-    }
-
-    if(ph->getParam<bool>("i_right_rect_enable_feature_tracker")) {
-        featureTrackerRightR = std::make_unique<FeatureTracker>(rightSensInfo.name + std::string("_rect_feature_tracker"), getROSNode(), pipeline);
-        stereoCamNode->rectifiedRight.link(featureTrackerRightR->getInput());
-    }
 }
 
 void Stereo::setupRectQueue(std::shared_ptr<dai::Device> device,
@@ -139,6 +113,10 @@ void Stereo::setupRectQueue(std::shared_ptr<dai::Device> device,
                             bool isLeft) {
     auto sensorName = getSocketName(sensorInfo.socket);
     auto tfPrefix = getOpticalTFPrefix(sensorName);
+    auto customFrameId = ph->getParam<std::string>(isLeft ? "i_left_rect_frame_id" : "i_right_rect_frame_id");
+    if(!customFrameId.empty()) {
+        tfPrefix = customFrameId;
+    }
     utils::ImgConverterConfig convConfig;
     convConfig.tfPrefix = tfPrefix;
     convConfig.interleaved = false;
@@ -180,6 +158,10 @@ void Stereo::setupStereoQueue(std::shared_ptr<dai::Device> device) {
         tfPrefix = getOpticalTFPrefix(ph->getParam<std::string>("i_socket_name"));
     } else {
         tfPrefix = getOpticalTFPrefix(getSocketName(rightSensInfo.socket).c_str());
+    }
+    auto customFrameId = ph->getParam<std::string>("i_frame_id");
+    if(!customFrameId.empty()) {
+        tfPrefix = customFrameId;
     }
     utils::ImgConverterConfig convConfig;
     convConfig.getBaseDeviceTimestamp = ph->getParam<bool>("i_get_base_device_timestamp");
@@ -245,15 +227,6 @@ void Stereo::setupQueues(std::shared_ptr<dai::Device> device) {
         rightRectQ = rightRectPub->getQueue();
         syncTimer = getROSNode()->create_wall_timer(std::chrono::milliseconds(timerPeriod), std::bind(&Stereo::syncTimerCB, this));
     }
-    if(ph->getParam<bool>("i_left_rect_enable_feature_tracker")) {
-        featureTrackerLeftR->setupQueues(device);
-    }
-    if(ph->getParam<bool>("i_right_rect_enable_feature_tracker")) {
-        featureTrackerRightR->setupQueues(device);
-    }
-    if(ph->getParam<bool>("i_enable_spatial_nn")) {
-        nnNode->setupQueues(device);
-    }
 }
 void Stereo::closeQueues() {
     left->closeQueues();
@@ -271,15 +244,6 @@ void Stereo::closeQueues() {
         syncTimer->cancel();
         leftRectPub->closeQueue();
         rightRectPub->closeQueue();
-    }
-    if(ph->getParam<bool>("i_left_rect_enable_feature_tracker")) {
-        featureTrackerLeftR->closeQueues();
-    }
-    if(ph->getParam<bool>("i_right_rect_enable_feature_tracker")) {
-        featureTrackerRightR->closeQueues();
-    }
-    if(ph->getParam<bool>("i_enable_spatial_nn")) {
-        nnNode->closeQueues();
     }
 }
 

@@ -1,10 +1,13 @@
-/oak:
+/**:
   ros__parameters:
     camera:
-      i_nn_type: none
+      i_pipeline_type: RGBD
+      i_enable_diagnostics: false
+    pipeline_gen:
+      i_enable_sync: true
+    rgb:
+      i_synced: true
     stereo:
       i_align_depth: true
-      i_board_socket_id: 2
       i_subpixel: true
-      i_right_rect_publish_topic: true
-      i_right_rect_synced: false
+      i_synced: true
