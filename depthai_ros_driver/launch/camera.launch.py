@@ -14,12 +14,16 @@ def _arg_or_default(context, arg_name, default_value):
     return value if value else default_value
 
 
+def _is_enabled(value):
+    return value.strip().lower() in {"true", "1"}
+
+
 def launch_setup(context, *args, **kwargs):
     params_file = ParameterFile(LaunchConfiguration("params_file"), allow_substs=True)
     namespace = LaunchConfiguration("namespace").perform(context)
     name = LaunchConfiguration("name").perform(context)
     rectify_rgb = LaunchConfiguration("rectify_rgb")
-    pointcloud_enable = LaunchConfiguration("pointcloud_enable")
+    pointcloud_enabled = _is_enabled(LaunchConfiguration("pointcloud_enable").perform(context))
     target_container = f"{namespace}/{name}_container" if namespace else f"{name}_container"
 
     rgb_image_topic = _arg_or_default(context, "rgb_image_topic", f"{name}/rgb/image_raw")
@@ -33,7 +37,7 @@ def launch_setup(context, *args, **kwargs):
     depth_frame_id = LaunchConfiguration("depth_frame_id").perform(context)
 
     parameter_overrides = {}
-    if pointcloud_enable.perform(context) == "true":
+    if pointcloud_enabled:
         parameter_overrides = {
             "pipeline_gen": {"i_enable_sync": True},
             "rgb": {"i_synced": True},
@@ -86,7 +90,7 @@ def launch_setup(context, *args, **kwargs):
             ],
         ),
         LoadComposableNodes(
-            condition=IfCondition(pointcloud_enable),
+            condition=IfCondition("true" if pointcloud_enabled else "false"),
             target_container=target_container,
             composable_node_descriptions=[
                 ComposableNode(
