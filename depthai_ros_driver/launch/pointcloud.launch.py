@@ -12,7 +12,7 @@ def generate_launch_description():
 
     return LaunchDescription(
         [
-            DeclareLaunchArgument("name", default_value="oak"),
+            DeclareLaunchArgument("name", default_value="camera"),
             DeclareLaunchArgument("namespace", default_value=""),
             DeclareLaunchArgument(
                 "params_file",
