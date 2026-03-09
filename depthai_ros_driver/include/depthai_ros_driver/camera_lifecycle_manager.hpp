@@ -30,7 +30,7 @@ class CameraLifecycleManager : public rclcpp_lifecycle::LifecycleNode {
     using Trigger = std_srvs::srv::Trigger;
 
     void updateServiceNames();
-    void sendTriggerRequest(const rclcpp::Client<Trigger>::SharedPtr& client, bool start_request);
+    bool sendTriggerRequest(const rclcpp::Client<Trigger>::SharedPtr& client, bool start_request);
     void lifecycleDiagnostics(diagnostic_updater::DiagnosticStatusWrapper& status);
 
     std::string cameraName_;

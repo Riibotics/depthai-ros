@@ -72,7 +72,7 @@ CameraLifecycleManager::CallbackReturn CameraLifecycleManager::on_configure(cons
     return CallbackReturn::SUCCESS;
 }
 
-void CameraLifecycleManager::sendTriggerRequest(const rclcpp::Client<Trigger>::SharedPtr& client, bool start_request) {
+bool CameraLifecycleManager::sendTriggerRequest(const rclcpp::Client<Trigger>::SharedPtr& client, bool start_request) {
     if(!client || !client->service_is_ready()) {
         std::lock_guard<std::mutex> lock(stateMutex_);
         lastCommandSuccess_ = false;
@@ -84,44 +84,60 @@ void CameraLifecycleManager::sendTriggerRequest(const rclcpp::Client<Trigger>::S
         if(diagnosticUpdater_) {
             diagnosticUpdater_->SetStatusERROR(lastCommandMessage_);
         }
-        return;
+        return false;
     }
 
     auto req = std::make_shared<Trigger::Request>();
-    client->async_send_request(req, [this, start_request](rclcpp::Client<Trigger>::SharedFuture future) {
-        try {
-            auto response = future.get();
-            std::lock_guard<std::mutex> lock(stateMutex_);
-            lastCommandSuccess_ = response->success;
-            lastCommandMessage_ = response->message.empty() ? (start_request ? "Start request sent" : "Stop request sent") : response->message;
-            if(start_request) {
-                cameraRunning_ = response->success;
-            } else if(response->success) {
-                cameraRunning_ = false;
-            }
-            lastCommandResponseStamp_ = this->now();
-            if(diagnosticUpdater_) {
-                if(response->success && start_request) {
-                    diagnosticUpdater_->SetStatusOK("Camera start request succeeded.");
+    try {
+        client->async_send_request(req, [this, start_request](rclcpp::Client<Trigger>::SharedFuture future) {
+            try {
+                auto response = future.get();
+                std::lock_guard<std::mutex> lock(stateMutex_);
+                lastCommandSuccess_ = response->success;
+                lastCommandMessage_ = response->message.empty() ? (start_request ? "Start request sent" : "Stop request sent") : response->message;
+                if(start_request) {
+                    cameraRunning_ = response->success;
                 } else if(response->success) {
-                    diagnosticUpdater_->SetStatusWARN("Camera stopped.");
-                } else {
+                    cameraRunning_ = false;
+                }
+                lastCommandResponseStamp_ = this->now();
+                if(diagnosticUpdater_) {
+                    if(response->success && start_request) {
+                        diagnosticUpdater_->SetStatusOK("Camera start request succeeded.");
+                    } else if(response->success) {
+                        diagnosticUpdater_->SetStatusWARN("Camera stopped.");
+                    } else {
+                        diagnosticUpdater_->SetStatusERROR(lastCommandMessage_);
+                    }
+                }
+            } catch(const std::exception& e) {
+                std::lock_guard<std::mutex> lock(stateMutex_);
+                lastCommandSuccess_ = false;
+                lastCommandMessage_ = e.what();
+                if(start_request) {
+                    cameraRunning_ = false;
+                }
+                lastCommandResponseStamp_ = this->now();
+                if(diagnosticUpdater_) {
                     diagnosticUpdater_->SetStatusERROR(lastCommandMessage_);
                 }
             }
-        } catch(const std::exception& e) {
-            std::lock_guard<std::mutex> lock(stateMutex_);
-            lastCommandSuccess_ = false;
-            lastCommandMessage_ = e.what();
-            if(start_request) {
-                cameraRunning_ = false;
-            }
-            lastCommandResponseStamp_ = this->now();
-            if(diagnosticUpdater_) {
-                diagnosticUpdater_->SetStatusERROR(lastCommandMessage_);
-            }
+        });
+    } catch(const std::exception& e) {
+        std::lock_guard<std::mutex> lock(stateMutex_);
+        lastCommandSuccess_ = false;
+        lastCommandMessage_ = e.what();
+        if(start_request) {
+            cameraRunning_ = false;
         }
-    });
+        lastCommandResponseStamp_ = this->now();
+        if(diagnosticUpdater_) {
+            diagnosticUpdater_->SetStatusERROR(lastCommandMessage_);
+        }
+        return false;
+    }
+
+    return true;
 }
 
 CameraLifecycleManager::CallbackReturn CameraLifecycleManager::on_activate(const rclcpp_lifecycle::State& /*state*/) {
@@ -140,7 +156,10 @@ CameraLifecycleManager::CallbackReturn CameraLifecycleManager::on_activate(const
                            .Build();
     diagnosticUpdater_->SetStatusWARN("Lifecycle manager activated. Waiting for camera start response.");
 
-    sendTriggerRequest(startClient_, true);
+    if(!sendTriggerRequest(startClient_, true)) {
+        RCLCPP_ERROR(get_logger(), "Lifecycle manager activation failed. Start request dispatch failed.");
+        return CallbackReturn::FAILURE;
+    }
     RCLCPP_INFO(get_logger(), "Lifecycle manager activated. Start request dispatched.");
     return CallbackReturn::SUCCESS;
 }
@@ -154,7 +173,10 @@ CameraLifecycleManager::CallbackReturn CameraLifecycleManager::on_deactivate(con
     if(diagnosticUpdater_) {
         diagnosticUpdater_->SetStatusWARN("Lifecycle manager deactivating.");
     }
-    sendTriggerRequest(stopClient_, false);
+    if(!sendTriggerRequest(stopClient_, false)) {
+        RCLCPP_ERROR(get_logger(), "Lifecycle manager deactivation failed. Stop request dispatch failed.");
+        return CallbackReturn::FAILURE;
+    }
     RCLCPP_INFO(get_logger(), "Lifecycle manager deactivated. Stop request dispatched.");
     return CallbackReturn::SUCCESS;
 }
