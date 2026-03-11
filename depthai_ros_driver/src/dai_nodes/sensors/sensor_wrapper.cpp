@@ -4,12 +4,9 @@
 #include "depthai/pipeline/Pipeline.hpp"
 #include "depthai/pipeline/node/XLinkIn.hpp"
 #include "depthai_bridge/ImageConverter.hpp"
-#include "depthai_ros_driver/dai_nodes/nn/nn_wrapper.hpp"
-#include "depthai_ros_driver/dai_nodes/sensors/feature_tracker.hpp"
 #include "depthai_ros_driver/dai_nodes/sensors/mono.hpp"
 #include "depthai_ros_driver/dai_nodes/sensors/rgb.hpp"
 #include "depthai_ros_driver/dai_nodes/sensors/sensor_helpers.hpp"
-#include "depthai_ros_driver/dai_nodes/sensors/thermal.hpp"
 #include "depthai_ros_driver/param_handlers/sensor_param_handler.hpp"
 #include "rclcpp/node.hpp"
 
@@ -63,23 +60,8 @@ SensorWrapper::SensorWrapper(const std::string& daiNodeName,
         } else if((*sensorIt).sensorType == dai::CameraSensorType::MONO) {
             sensorNode = std::make_unique<Mono>(daiNodeName, node, pipeline, socket, (*sensorIt), publish);
         } else if((*sensorIt).sensorType == dai::CameraSensorType::THERMAL) {
-            for(auto& features : device->getConnectedCameraFeatures()) {
-                if(std::find_if(features.supportedTypes.begin(),
-                                features.supportedTypes.end(),
-                                [](const dai::CameraSensorType& type) { return type == dai::CameraSensorType::THERMAL; })
-                   != features.supportedTypes.end()) {
-                    sensorNode = std::make_unique<Thermal>(daiNodeName, node, pipeline, features);
-                }
-            }
+            throw std::runtime_error("Thermal sensors are not supported in this minimal driver build.");
         }
-    }
-    if(ph->getParam<bool>("i_enable_feature_tracker")) {
-        featureTrackerNode = std::make_unique<FeatureTracker>(daiNodeName + std::string("_feature_tracker"), node, pipeline);
-        sensorNode->link(featureTrackerNode->getInput());
-    }
-    if(ph->getParam<bool>("i_enable_nn")) {
-        nnNode = std::make_unique<NNWrapper>(daiNodeName + std::string("_nn"), node, pipeline, static_cast<dai::CameraBoardSocket>(socketID));
-        sensorNode->link(nnNode->getInput(), static_cast<int>(link_types::RGBLinkType::preview));
     }
     RCLCPP_DEBUG(node->get_logger(), "Base node %s created", daiNodeName.c_str());
 }
@@ -111,12 +93,6 @@ void SensorWrapper::setupQueues(std::shared_ptr<dai::Device> device) {
     if(!ph->getParam<bool>("i_disable_node")) {
         sensorNode->setupQueues(device);
     }
-    if(ph->getParam<bool>("i_enable_feature_tracker")) {
-        featureTrackerNode->setupQueues(device);
-    }
-    if(ph->getParam<bool>("i_enable_nn")) {
-        nnNode->setupQueues(device);
-    }
 }
 void SensorWrapper::closeQueues() {
     if(ph->getParam<bool>("i_simulate_from_topic")) {
@@ -124,12 +100,6 @@ void SensorWrapper::closeQueues() {
     }
     if(!ph->getParam<bool>("i_disable_node")) {
         sensorNode->closeQueues();
-    }
-    if(ph->getParam<bool>("i_enable_feature_tracker")) {
-        featureTrackerNode->closeQueues();
-    }
-    if(ph->getParam<bool>("i_enable_nn")) {
-        nnNode->closeQueues();
     }
 }
 

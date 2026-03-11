@@ -34,14 +34,13 @@ void SensorParamHandler::declareCommonParams(dai::CameraBoardSocket socket) {
     declareAndLogParam<bool>("i_get_base_device_timestamp", false);
     socketID = static_cast<dai::CameraBoardSocket>(declareAndLogParam<int>("i_board_socket_id", static_cast<int>(socket), false));
     declareAndLogParam<bool>("i_update_ros_base_time_on_ros_msg", false);
-    declareAndLogParam<bool>("i_enable_feature_tracker", false);
-    declareAndLogParam<bool>("i_enable_nn", false);
     declareAndLogParam<bool>("i_enable_lazy_publisher", true);
     declareAndLogParam<bool>("i_add_exposure_offset", false);
     declareAndLogParam<int>("i_exposure_offset", 0);
     declareAndLogParam<bool>("i_reverse_stereo_socket_order", false);
     declareAndLogParam<bool>("i_synced", false);
     declareAndLogParam<bool>("i_publish_compressed", false);
+    declareAndLogParam<std::string>("i_frame_id", "");
 }
 
 void SensorParamHandler::declareParams(std::shared_ptr<dai::node::Camera> cam, dai::CameraFeatures features, bool publish) {

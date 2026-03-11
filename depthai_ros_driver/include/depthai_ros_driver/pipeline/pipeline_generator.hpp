@@ -21,7 +21,7 @@ namespace param_handlers {
 class PipelineGenParamHandler;
 }  // namespace param_handlers
 namespace pipeline_gen {
-enum class PipelineType { RGB, RGBD, RGBStereo, Stereo, Depth, CamArray, DepthToF, StereoToF, ToF, RGBToF, Thermal };
+enum class PipelineType { RGB, RGBD, Stereo, Depth };
 
 class PipelineGenerator {
    public:
@@ -36,7 +36,7 @@ class PipelineGenerator {
      *
      * @return     The validated pipeline type.
      */
-    std::string validatePipeline(std::shared_ptr<rclcpp::Node> node, const std::string& typeStr, int sensorNum, const std::string& deviceName);
+    std::string validatePipeline(std::shared_ptr<rclcpp::Node> node, const std::string& typeStr, int sensorNum);
     /**
      * @brief      Creates the pipeline by using a plugin. Plugin types need to be of type depthai_ros_driver::pipeline_gen::BasePipeline.
      *
@@ -44,16 +44,13 @@ class PipelineGenerator {
      * @param      device        The device
      * @param      pipeline      The pipeline
      * @param[in]  pipelineType  The pipeline type name (plugin name or one of the default types)
-     * @param[in]  nnType        The neural network type (none, rgb, spatial)
-     * @param[in]  enableImu     Indicates if IMU is enabled
      *
      * @return     Vector BaseNodes created.
      */
     std::vector<std::unique_ptr<dai_nodes::BaseNode>> createPipeline(std::shared_ptr<rclcpp::Node> node,
                                                                      std::shared_ptr<dai::Device> device,
                                                                      std::shared_ptr<dai::Pipeline> pipeline,
-                                                                     const std::string& pipelineType,
-                                                                     const std::string& nnType);
+                                                                     const std::string& pipelineType);
 
    protected:
     std::unordered_map<std::string, std::string> pluginTypeMap;

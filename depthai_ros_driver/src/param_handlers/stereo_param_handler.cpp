@@ -72,6 +72,7 @@ void StereoParamHandler::declareParams(std::shared_ptr<dai::node::StereoDepth> s
     declareAndLogParam<bool>("i_enable_lazy_publisher", true);
     declareAndLogParam<bool>("i_reverse_stereo_socket_order", false);
     declareAndLogParam<bool>("i_publish_compressed", false);
+    declareAndLogParam<std::string>("i_frame_id", "");
     declareAndLogParam<std::string>("i_calibration_file", "");
     declareAndLogParam<bool>("i_flip_published_image", false);
 
@@ -85,9 +86,9 @@ void StereoParamHandler::declareParams(std::shared_ptr<dai::node::StereoDepth> s
     declareAndLogParam<std::string>("i_left_rect_low_bandwidth_ffmpeg_encoder", "libx264");
     declareAndLogParam<bool>("i_left_rect_add_exposure_offset", false);
     declareAndLogParam<int>("i_left_rect_exposure_offset", 0);
-    declareAndLogParam<bool>("i_left_rect_enable_feature_tracker", false);
     declareAndLogParam<bool>("i_left_rect_synced", false);
     declareAndLogParam<bool>("i_left_rect_publish_compressed", false);
+    declareAndLogParam<std::string>("i_left_rect_frame_id", "");
 
     declareAndLogParam<bool>("i_right_rect_publish_topic", false);
     declareAndLogParam<bool>("i_right_rect_low_bandwidth", false);
@@ -96,14 +97,12 @@ void StereoParamHandler::declareParams(std::shared_ptr<dai::node::StereoDepth> s
     declareAndLogParam<int>("i_right_rect_low_bandwidth_frame_freq", 30);
     declareAndLogParam<int>("i_right_rect_low_bandwidth_bitrate", 0);
     declareAndLogParam<std::string>("i_right_rect_low_bandwidth_ffmpeg_encoder", "libx264");
-    declareAndLogParam<bool>("i_right_rect_enable_feature_tracker", false);
     declareAndLogParam<bool>("i_right_rect_add_exposure_offset", false);
     declareAndLogParam<int>("i_right_rect_exposure_offset", 0);
     declareAndLogParam<bool>("i_right_rect_synced", false);
     declareAndLogParam<bool>("i_right_rect_publish_compressed", false);
+    declareAndLogParam<std::string>("i_right_rect_frame_id", "");
 
-    declareAndLogParam<bool>("i_enable_spatial_nn", false);
-    declareAndLogParam<std::string>("i_spatial_nn_source", "right");
     declareAndLogParam<bool>("i_synced", false);
 
     stereo->setLeftRightCheck(declareAndLogParam<bool>("i_lr_check", true));

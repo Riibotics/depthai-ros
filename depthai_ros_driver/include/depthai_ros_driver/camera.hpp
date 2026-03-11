@@ -4,7 +4,6 @@
 #include <string>
 #include <vector>
 
-#include "depthai_bridge/TFPublisher.hpp"
 #include "depthai_ros_driver/dai_nodes/base_node.hpp"
 #include "depthai_ros_driver/param_handlers/camera_param_handler.hpp"
 #include "diagnostic_msgs/msg/diagnostic_array.hpp"
@@ -30,6 +29,8 @@ class Camera : public rclcpp::Node {
      * @brief Creates the pipeline and starts the device. Also sets up parameter callback and services.
      */
     void onConfigure();
+    void start();
+    void stop();
 
    private:
     /**
@@ -70,18 +71,11 @@ class Camera : public rclcpp::Node {
     std::unique_ptr<param_handlers::CameraParamHandler> ph;
     rclcpp::Service<Trigger>::SharedPtr startSrv, stopSrv, savePipelineSrv, saveCalibSrv;
     rclcpp::Subscription<diagnostic_msgs::msg::DiagnosticArray>::SharedPtr diagSub;
+    void createControlInterfaces();
+    bool controlInterfacesCreated = false;
     /*
      * Closes all the queues, clears the configured BaseNodes, stops the pipeline and resets the device.
      */
-    void stop();
-    /*
-     * Runs onConfigure();
-     */
-    void start();
-    /*
-     * Since we cannot use shared_from this before the object is initialized, we need to use a timer to start the device.
-     */
-    void indirectStart();
     void restart();
     void diagCB(const diagnostic_msgs::msg::DiagnosticArray::SharedPtr msg);
 
@@ -95,7 +89,6 @@ class Camera : public rclcpp::Node {
     std::vector<std::unique_ptr<dai_nodes::BaseNode>> daiNodes;
     std::atomic<bool> camRunning = false;
     bool initialized = false;
-    std::unique_ptr<dai::ros::TFPublisher> tfPub;
     rclcpp::TimerBase::SharedPtr startTimer;
     rclcpp::CallbackGroup::SharedPtr srvGroup;
 };

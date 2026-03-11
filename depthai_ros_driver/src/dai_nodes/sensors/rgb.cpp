@@ -67,6 +67,10 @@ void RGB::setXinXout(std::shared_ptr<dai::Pipeline> pipeline) {
 void RGB::setupQueues(std::shared_ptr<dai::Device> device) {
     if(ph->getParam<bool>("i_publish_topic")) {
         auto tfPrefix = getOpticalTFPrefix(getSocketName(static_cast<dai::CameraBoardSocket>(ph->getParam<int>("i_board_socket_id"))));
+        auto customFrameId = ph->getParam<std::string>("i_frame_id");
+        if(!customFrameId.empty()) {
+            tfPrefix = customFrameId;
+        }
         utils::ImgConverterConfig convConfig;
         convConfig.tfPrefix = tfPrefix;
         convConfig.getBaseDeviceTimestamp = ph->getParam<bool>("i_get_base_device_timestamp");
@@ -98,6 +102,10 @@ void RGB::setupQueues(std::shared_ptr<dai::Device> device) {
     }
     if(ph->getParam<bool>("i_enable_preview")) {
         auto tfPrefix = getOpticalTFPrefix(getSocketName(static_cast<dai::CameraBoardSocket>(ph->getParam<int>("i_board_socket_id"))));
+        auto customFrameId = ph->getParam<std::string>("i_frame_id");
+        if(!customFrameId.empty()) {
+            tfPrefix = customFrameId;
+        }
         utils::ImgConverterConfig convConfig;
         convConfig.tfPrefix = tfPrefix;
         convConfig.getBaseDeviceTimestamp = ph->getParam<bool>("i_get_base_device_timestamp");

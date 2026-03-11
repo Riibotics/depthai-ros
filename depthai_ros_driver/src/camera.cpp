@@ -4,7 +4,6 @@
 
 #include "depthai/device/Device.hpp"
 #include "depthai/pipeline/Pipeline.hpp"
-#include "depthai_bridge/TFPublisher.hpp"
 #include "depthai_ros_driver/pipeline/pipeline_generator.hpp"
 #include "diagnostic_msgs/msg/diagnostic_array.hpp"
 
@@ -15,7 +14,12 @@ Camera::Camera(const rclcpp::NodeOptions& options) : rclcpp::Node("camera", opti
     startTimer = this->create_wall_timer(std::chrono::seconds(1), [this]() {
         ph = std::make_unique<param_handlers::CameraParamHandler>(shared_from_this(), "camera");
         ph->declareParams();
-        start();
+        createControlInterfaces();
+        if(ph->getParam<bool>("i_auto_start")) {
+            start();
+        } else {
+            RCLCPP_INFO(get_logger(), "Camera node initialized in manual start mode.");
+        }
         startTimer->cancel();
     });
     rclcpp::on_shutdown([this]() { stop(); });
@@ -30,30 +34,12 @@ void Camera::onConfigure() {
     setupQueues();
     setIR();
     paramCBHandle = this->add_on_set_parameters_callback(std::bind(&Camera::parameterCB, this, std::placeholders::_1));
-    // If model name not set get one from the device
-    std::string camModel = ph->getParam<std::string>("i_tf_camera_model");
-    if(camModel.empty()) {
-        camModel = device->getDeviceName();
-    }
+    RCLCPP_INFO(get_logger(), "Camera ready!");
+}
 
-    if(ph->getParam<bool>("i_publish_tf_from_calibration")) {
-        tfPub = std::make_unique<dai::ros::TFPublisher>(shared_from_this(),
-                                                        device->readCalibration(),
-                                                        device->getConnectedCameraFeatures(),
-                                                        ph->getParam<std::string>("i_tf_camera_name"),
-                                                        camModel,
-                                                        ph->getParam<std::string>("i_tf_base_frame"),
-                                                        ph->getParam<std::string>("i_tf_parent_frame"),
-                                                        ph->getParam<std::string>("i_tf_cam_pos_x"),
-                                                        ph->getParam<std::string>("i_tf_cam_pos_y"),
-                                                        ph->getParam<std::string>("i_tf_cam_pos_z"),
-                                                        ph->getParam<std::string>("i_tf_cam_roll"),
-                                                        ph->getParam<std::string>("i_tf_cam_pitch"),
-                                                        ph->getParam<std::string>("i_tf_cam_yaw"),
-                                                        ph->getParam<std::string>("i_tf_imu_from_descr"),
-                                                        ph->getParam<std::string>("i_tf_custom_urdf_location"),
-                                                        ph->getParam<std::string>("i_tf_custom_xacro_args"),
-                                                        ph->getParam<bool>("i_rs_compat"));
+void Camera::createControlInterfaces() {
+    if(controlInterfacesCreated) {
+        return;
     }
     srvGroup = this->create_callback_group(rclcpp::CallbackGroupType::Reentrant);
     startSrv = this->create_service<Trigger>(
@@ -64,9 +50,8 @@ void Camera::onConfigure() {
         "~/save_pipeline", std::bind(&Camera::savePipelineCB, this, std::placeholders::_1, std::placeholders::_2), rmw_qos_profile_services_default, srvGroup);
     saveCalibSrv = this->create_service<Trigger>(
         "~/save_calibration", std::bind(&Camera::saveCalibCB, this, std::placeholders::_1, std::placeholders::_2), rmw_qos_profile_services_default, srvGroup);
-
     diagSub = this->create_subscription<diagnostic_msgs::msg::DiagnosticArray>("/diagnostics", 10, std::bind(&Camera::diagCB, this, std::placeholders::_1));
-    RCLCPP_INFO(get_logger(), "Camera ready!");
+    controlInterfacesCreated = true;
 }
 
 void Camera::diagCB(const diagnostic_msgs::msg::DiagnosticArray::SharedPtr msg) {
@@ -83,6 +68,10 @@ void Camera::diagCB(const diagnostic_msgs::msg::DiagnosticArray::SharedPtr msg) 
 }
 
 void Camera::start() {
+    if(!ph) {
+        RCLCPP_WARN(this->get_logger(), "Camera parameter handler not initialized yet.");
+        return;
+    }
     RCLCPP_INFO(this->get_logger(), "Starting camera.");
     if(!camRunning) {
         onConfigure();
@@ -158,12 +147,19 @@ void Camera::savePipelineCB(const Trigger::Request::SharedPtr /*req*/, Trigger::
 }
 
 void Camera::startCB(const Trigger::Request::SharedPtr /*req*/, Trigger::Response::SharedPtr res) {
+    if(!ph) {
+        res->success = false;
+        res->message = "Camera is not initialized yet.";
+        return;
+    }
     start();
-    res->success = true;
+    res->success = camRunning;
+    res->message = camRunning ? "Camera started." : "Camera start failed.";
 }
 void Camera::stopCB(const Trigger::Request::SharedPtr /*req*/, Trigger::Response::SharedPtr res) {
     stop();
     res->success = true;
+    res->message = "Camera stopped.";
 }
 void Camera::getDeviceType() {
     pipeline = std::make_shared<dai::Pipeline>();
@@ -186,8 +182,7 @@ void Camera::createPipeline() {
     if(!ph->getParam<std::string>("i_external_calibration_path").empty()) {
         loadCalib(ph->getParam<std::string>("i_external_calibration_path"));
     }
-    daiNodes =
-        generator->createPipeline(shared_from_this(), device, pipeline, ph->getParam<std::string>("i_pipeline_type"), ph->getParam<std::string>("i_nn_type"));
+    daiNodes = generator->createPipeline(shared_from_this(), device, pipeline, ph->getParam<std::string>("i_pipeline_type"));
     if(ph->getParam<bool>("i_pipeline_dump")) {
         savePipeline();
     }
