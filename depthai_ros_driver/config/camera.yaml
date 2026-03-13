@@ -3,7 +3,7 @@
     camera:
       i_pipeline_type: RGBD
       i_enable_ir: true
-      i_enable_diagnostics: false
+      i_enable_diagnostics: true
     rgb:
       i_publish_topic: true
       i_enable_preview: false

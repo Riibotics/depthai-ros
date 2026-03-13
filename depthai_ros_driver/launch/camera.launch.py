@@ -22,6 +22,7 @@ def launch_setup(context, *args, **kwargs):
     params_file = ParameterFile(LaunchConfiguration("params_file"), allow_substs=True)
     namespace = LaunchConfiguration("namespace").perform(context)
     name = LaunchConfiguration("name").perform(context)
+    camera_ip = LaunchConfiguration("camera_ip").perform(context)
     rectify_rgb = LaunchConfiguration("rectify_rgb")
     pointcloud_enabled = _is_enabled(LaunchConfiguration("pointcloud_enable").perform(context))
     target_container = f"{namespace}/{name}_container" if namespace else f"{name}_container"
@@ -44,6 +45,8 @@ def launch_setup(context, *args, **kwargs):
             "stereo": {"i_synced": True},
         }
 
+    if camera_ip:
+        parameter_overrides.setdefault("camera", {})["i_ip"] = camera_ip
     if rgb_frame_id:
         parameter_overrides.setdefault("rgb", {})["i_frame_id"] = rgb_frame_id
     if depth_frame_id:
@@ -116,6 +119,7 @@ def generate_launch_description():
     declared_arguments = [
         DeclareLaunchArgument("name", default_value="camera"),
         DeclareLaunchArgument("namespace", default_value=""),
+        DeclareLaunchArgument("camera_ip", default_value=""),
         DeclareLaunchArgument(
             "params_file",
             default_value=os.path.join(depthai_prefix, "config", "camera.yaml"),

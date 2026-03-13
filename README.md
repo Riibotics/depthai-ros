@@ -18,15 +18,16 @@ Kept packages:
 ## Run
 ```bash
 # image + depth
-ros2 launch depthai_ros_driver camera.launch.py
+ros2 launch depthai_ros_driver camera.launch.py camera_ip:=169.254.1.222
 
 # image + depth + pointcloud
-ros2 launch depthai_ros_driver pointcloud.launch.py
+ros2 launch depthai_ros_driver pointcloud.launch.py camera_ip:=169.254.1.222
 ```
 
 ## Launch-Level Topic/Frame Customization
 ```bash
 ros2 launch depthai_ros_driver pointcloud.launch.py \
+  camera_ip:=169.254.1.222 \
   rgb_image_topic:=camera/front/color/image_raw \
   rgb_camera_info_topic:=camera/front/color/camera_info \
   rgb_rect_topic:=camera/front/color/image_rect \
@@ -40,7 +41,12 @@ ros2 launch depthai_ros_driver pointcloud.launch.py \
 ## Lifecycle + Diagnostics
 ```bash
 # Lifecycle mode (camera + lifecycle manager)
-ros2 launch depthai_ros_driver camera_lifecycle.launch.py
+ros2 launch depthai_ros_driver camera_lifecycle.launch.py \
+  camera_ip:=169.254.1.222 \
+  rgb_image_topic:=camera/front/color/image_raw \
+  depth_image_topic:=camera/front/depth/image_raw \
+  rgb_frame_id:=front_color_optical_frame \
+  depth_frame_id:=front_depth_optical_frame
 
 # Manual transitions (if autostart:=false)
 ros2 lifecycle set /camera_lifecycle_manager configure
