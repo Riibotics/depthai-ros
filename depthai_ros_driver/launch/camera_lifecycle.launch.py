@@ -111,7 +111,7 @@ def generate_launch_description():
 
     return LaunchDescription(
         [
-            DeclareLaunchArgument("name", default_value="fork_camera"),
+            DeclareLaunchArgument("name", default_value="camera"),
             DeclareLaunchArgument("namespace", default_value=""),
             DeclareLaunchArgument("camera_ip", default_value="169.254.1.222"),
             DeclareLaunchArgument(
