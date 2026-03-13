@@ -113,7 +113,7 @@ def generate_launch_description():
         [
             DeclareLaunchArgument("name", default_value="fork_camera"),
             DeclareLaunchArgument("namespace", default_value=""),
-            DeclareLaunchArgument("camera_ip", default_value="192.168.100.82"),
+            DeclareLaunchArgument("camera_ip", default_value="169.254.1.222"),
             DeclareLaunchArgument(
                 "params_file",
                 default_value=os.path.join(depthai_prefix, "config", "camera.yaml"),
