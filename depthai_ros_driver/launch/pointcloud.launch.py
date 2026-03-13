@@ -14,6 +14,7 @@ def generate_launch_description():
         [
             DeclareLaunchArgument("name", default_value="camera"),
             DeclareLaunchArgument("namespace", default_value=""),
+            DeclareLaunchArgument("camera_ip", default_value=""),
             DeclareLaunchArgument(
                 "params_file",
                 default_value=os.path.join(depthai_prefix, "config", "pcl.yaml"),
@@ -33,6 +34,7 @@ def generate_launch_description():
                 launch_arguments={
                     "name": LaunchConfiguration("name"),
                     "namespace": LaunchConfiguration("namespace"),
+                    "camera_ip": LaunchConfiguration("camera_ip"),
                     "params_file": LaunchConfiguration("params_file"),
                     "rectify_rgb": "true",
                     "pointcloud_enable": "true",

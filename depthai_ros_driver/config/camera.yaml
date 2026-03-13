@@ -3,7 +3,8 @@
     camera:
       i_pipeline_type: RGBD
       i_enable_ir: true
-      i_enable_diagnostics: false
+      i_enable_diagnostics: true
+      i_ip: 192.168.100.82
     rgb:
       i_publish_topic: true
       i_enable_preview: false
